@@ -1,5 +1,22 @@
 #include "printf.hpp"
 
+char* hexconv(int64_t in){
+	char converted[17]= "0000000000000000";
+	int64_t temp;
+	for(int i = 0; i < 16; i++){
+		temp = (in >> (i*4)) & 0xf;
+		if(temp >= 10)
+			converted[15 - i] = 'a' + (temp - 10);
+		else
+			converted[15 - i] += temp;
+	}
+	
+	write(1, converted, 16);
+
+	return converted;
+}
+
+
 //writes char array of any length to stdout by counting the size and writing it using typical write() function
 
 void cwrite(const char* wstr) //writes string of variable size
