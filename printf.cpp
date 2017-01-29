@@ -1,19 +1,33 @@
 #include "printf.hpp"
 
+//converts a decimal number into a string representation of its hexadecimal value
 char* hexconv(int64_t in){
-	char converted[17]= "0000000000000000";
-	int64_t temp;
-	for(int i = 0; i < 16; i++){
-		temp = (in >> (i*4)) & 0xf;
-		if(temp >= 10)
-			converted[15 - i] = 'a' + (temp - 10);
-		else
-			converted[15 - i] += temp;
-	}
+	char converted[17]; //holds intial conversion of number from dec to hex
+	int64_t temp;		
+	int leadzero = 0; //used to track the number of leading zeroes on the converted string
 	
-	write(1, converted, 16);
+	//converts the decimal value into a string representation of the hex value
+	for(int i = 0; i < 16; i++){
+		temp = (in >> (i*4)) & 0xf; //collects the value of the ith byte
+		if(temp >= 10)
+			converted[15 - i] = 'a' + (temp - 10); // if value >= 10, the hex value is a letter
+		else
+			converted[15 - i] = '0' + temp; //if value < 10, hex value = decimal value
+	}
 
-	return converted;
+	//counts leading zeroes
+	while (converted[leadzero] == '0')
+		leadzero++;
+
+	char *conv_short = new char[17 - leadzero]; //holds the converted string minus leading zeroes
+	
+	//removes leading zeroes, placing final representation into cov_short
+	for(int i = 0; i < 17 - leadzero -1; i++){
+		conv_short[i] = converted[i + leadzero];
+	}
+	conv_short[17 - leadzero - 1] = '\0';
+
+	return conv_short;
 }
 
 
@@ -145,7 +159,7 @@ int printf(const char *fmt, ...){
 	char cur = fmt[0];			//current character
 	char *buf = new char[1]();	//for writing letter by letter
 	const char* converted;		//buffer for numbers converted to strings
-
+	
 	va_start(args, fmt);		//init list to arg named "fmt"
 	
 	while(cur != '\0'){			//count letters
@@ -168,9 +182,11 @@ int printf(const char *fmt, ...){
 				tempi = va_arg(args, int);
 				converted = itostr(tempi);
 				cwrite(converted);
-			}else if(fmt[i] == 'x')		//being worked on
+			}else if(fmt[i] == 'x')
 			{
 //				write(1,"hex",5);
+				converted = hexconv(va_arg(args, int));
+				cwrite(converted);
 			}else if(fmt[i] == 'f')
 				
 			//may need additional i++'s to get all of the formatting flags in
