@@ -1,5 +1,5 @@
 #include "printf.hpp"
 
 int main(){
-	printf("test\n");
+	printf("0x%x\n",11523);
 }
