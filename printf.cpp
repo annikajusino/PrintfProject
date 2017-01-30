@@ -47,6 +47,28 @@ void cwrite(const char* wstr) //writes string of variable size
 
 }
 
+int scwrite(const char* wstr, char* istr, int index, int rem){
+	int size = 0;
+	char cur = wstr[0];
+
+	while(cur != '\0'){
+		size++;
+		cur = wstr[size];
+	}
+	if(size > rem){
+		for(int i = 0; i < size - rem; i++){
+			istr[index + i] = wstr[i];
+		}
+		return size - rem;
+	}
+	else{
+		for(int i = 0; i < size; i++){
+			istr[index + i] = wstr[i];
+		}
+		return size;
+	}
+}
+
 //converts integer into string
 
 const char* itostr(int tostr)
@@ -212,5 +234,68 @@ int printf(const char *fmt, ...){
 	va_end(args);
 
 	return 0;
+}
+
+int snprintf(char *dest, size_t size, const char *fmt, ...){
+	va_list args;				//args list
+	int tempi;					//integer buffer for args
+	double tempf;				//float/double buffer for args
+	int fsize = 0;				
+	char cur = fmt[0];			//current character
+	char *buf = new char[1]();	//for writing letter by letter
+	const char* converted;		//buffer for numbers converted to strings
+	int count = 0;
+	int to_write;
+	va_start(args, fmt);		//init list to arg named "fmt"
+	
+	while(cur != '\0'){			//count letters
+		fsize++;
+		cur = fmt[fsize];
+	}
+	if(fsize > size - 1)
+		to_write = size - 1;
+	else
+		to_write = fsize;
+
+	for(int i = 0; i < to_write; i++)	//iterate through string, find percent signs
+	{
+		if(fmt[i] == '%')			//if found, interate forward to the next character to figure out data type
+		{
+			i++;			
+
+									//pull next arg of that data type, convert, and print
+			
+			if(fmt[i] == 'd')
+			{
+				tempi = va_arg(args, int);
+				converted = itostr(tempi);
+				count += scwrite(converted, dest, count, size - count);
+				//cwrite(converted);
+			}else if(fmt[i] == 'x')
+			{
+				converted = hexconv(va_arg(args, int));
+				count += scwrite(converted, dest, count, size - count);
+				//cwrite(converted);
+			}else if(fmt[i] == 'f')
+			//may need additional i++'s to get all of the formatting flags in
+			//may need encasing "while != any of these...(d, x, f, s, etc)" to collect flags before %f
+			{
+				tempf = va_arg(args, double);
+				converted = dtostr(tempf);
+				count += scwrite(converted, dest, count, size - count);
+				//cwrite(converted);
+			}
+		}
+		else						//if not % sign, write as usual
+		{
+			buf[0] = fmt[i];
+			write(1, buf, 1);
+			count++;
+		}
+	}
+
+	va_end(args);
+
+	return to_write;
 }
 
