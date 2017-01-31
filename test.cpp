@@ -1,5 +1,6 @@
 #include "printf.hpp"
 
 int main(){
-	printf("test %xtest test testtesttest\n");
+	int check = printf("test\n");
+	printf("check = %d\n", check);
 }

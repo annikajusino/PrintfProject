@@ -1,8 +1,39 @@
 #include "printf.hpp"
 
+//converts a decimal number into a string representation of its hexadecimal value
+char* hexconv(int64_t in){
+	char converted[17]; //holds intial conversion of number from dec to hex
+	int64_t temp;		
+	int leadzero = 0; //used to track the number of leading zeroes on the converted string
+	
+	//converts the decimal value into a string representation of the hex value
+	for(int i = 0; i < 16; i++){
+		temp = (in >> (i*4)) & 0xf; //collects the value of the ith byte
+		if(temp >= 10)
+			converted[15 - i] = 'a' + (temp - 10); // if value >= 10, the hex value is a letter
+		else
+			converted[15 - i] = '0' + temp; //if value < 10, hex value = decimal value
+	}
+
+	//counts leading zeroes
+	while (converted[leadzero] == '0')
+		leadzero++;
+
+	char *conv_short = new char[17 - leadzero]; //holds the converted string minus leading zeroes
+	
+	//removes leading zeroes, placing final representation into cov_short
+	for(int i = 0; i < 17 - leadzero -1; i++){
+		conv_short[i] = converted[i + leadzero];
+	}
+	conv_short[17 - leadzero - 1] = '\0';
+
+	return conv_short;
+}
+
+
 //writes char array of any length to stdout by counting the size and writing it using typical write() function
 
-void cwrite(const char* wstr) //writes string of variable size
+int cwrite(const char* wstr) //writes string of variable size
 {
 	int size = 0;
 	char cur = wstr[0];
@@ -12,8 +43,32 @@ void cwrite(const char* wstr) //writes string of variable size
 		cur = wstr[size];
 	}
 
-	write(1, wstr, size);
+	return write(1, wstr, size);
 
+}
+
+//copies one char array (wstr) to another char array (dest), starting from char at index, up to index == max. Returns the number of characters copied
+int scwrite(const char* wstr, char* dest, int index, int max){
+	int size = 0;			//size of copied string
+	char cur = wstr[0];		//current character
+	
+	while(cur != '\0'){ //measures size of copied string
+		size++;
+		cur = wstr[size];
+	}
+
+	if((size + index) > max){ //if the copied string length + index exceeds the max, writes up to the max
+		for(int i = 0; i < (max-index) ; i++){
+			dest[index + i] = wstr[i];
+		}
+		return max-index ;
+	}
+	else{ //if copied string length + index won't exceed max, writes whole string to dest
+		for(int i = 0; i < size; i++){
+			dest[index + i] = wstr[i];
+		}
+		return size;
+	}
 }
 
 //converts integer into string
@@ -128,6 +183,7 @@ int printf(const char *fmt, ...){
 	char cur = fmt[0];			//current character
 	char *buf = new char[1]();	//for writing letter by letter
 	const char* converted;		//buffer for numbers converted to strings
+	int count = 0;				//tracks number of characters written to output for returning from printf
 
 	va_start(args, fmt);		//init list to arg named "fmt"
 	
@@ -150,10 +206,12 @@ int printf(const char *fmt, ...){
 //				cwrite(" integer ");
 				tempi = va_arg(args, int);
 				converted = itostr(tempi);
-				cwrite(converted);
-			}else if(fmt[i] == 'x')		//being worked on
+				count += cwrite(converted);
+			}else if(fmt[i] == 'x')
 			{
 //				write(1,"hex",5);
+				converted = hexconv(va_arg(args, int));
+				count += cwrite(converted);
 			}else if(fmt[i] == 'f')
 				
 			//may need additional i++'s to get all of the formatting flags in
@@ -166,18 +224,67 @@ int printf(const char *fmt, ...){
 //				cwrite("float");
 				tempf = va_arg(args, double);
 				converted = dtostr(tempf);
-				cwrite(converted);
+				count += cwrite(converted);
 			}
 		}
 		else						//if not % sign, write as usual
 		{
 			buf[0] = fmt[i];
 			write(1, buf, 1);
+			count++;
 		}
 	}
 
 	va_end(args);
 
-	return 0;
+	return count;
+}
+
+int snprintf(char *dest, size_t size, const char *fmt, ...){
+	va_list args;				//args list
+	int tempi;					//integer buffer for args
+	double tempf;				//float/double buffer for args
+	int asize = size-1;			//number of non-termination characters that can be written
+	const char* converted;		//buffer for numbers converted to strings
+	int count = 0;				//tracks number of characters written to dest
+	va_start(args, fmt);		//init list to arg named "fmt"
+	int i = 0;					//iteration variable
+
+	while(fmt[i] != '\0' && count < asize)
+	{
+		if(fmt[i] == '%')			//if found, interate forward to the next character to figure out data type
+		{
+			i++;											
+			
+			//pull next arg of that data type, convert, and print
+			if(fmt[i] == 'd')
+			{
+				tempi = va_arg(args, int);
+				converted = itostr(tempi);
+				count += scwrite(converted, dest, count, asize );
+			}else if(fmt[i] == 'x')
+			{
+				converted = hexconv(va_arg(args, int));
+				count += scwrite(converted, dest, count, asize);
+			}else if(fmt[i] == 'f')
+			//may need additional i++'s to get all of the formatting flags in
+			//may need encasing "while != any of these...(d, x, f, s, etc)" to collect flags before %f
+			{
+				tempf = va_arg(args, double);
+				converted = dtostr(tempf);
+				count += scwrite(converted, dest, count, asize);
+			}
+		}
+		else						//if not % sign, write as usual
+		{
+			dest[count] = fmt[i];	
+			count++;
+		}
+		i++;
+	}
+	dest[size-1] = '\0';
+	va_end(args);
+
+	return count;
 }
 
