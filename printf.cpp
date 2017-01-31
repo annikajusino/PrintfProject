@@ -47,23 +47,25 @@ void cwrite(const char* wstr) //writes string of variable size
 
 }
 
-int scwrite(const char* wstr, char* istr, int index, int rem){
-	int size = 0;
-	char cur = wstr[0];
-
-	while(cur != '\0'){
+//copies one char array (wstr) to another char array (dest), starting from char at index, up to index == max. Returns the number of characters copied
+int scwrite(const char* wstr, char* dest, int index, int max){
+	int size = 0;			//size of copied string
+	char cur = wstr[0];		//current character
+	
+	while(cur != '\0'){ //measures size of copied string
 		size++;
 		cur = wstr[size];
 	}
-	if(size > rem){
-		for(int i = 0; i < size - rem; i++){
-			istr[index + i] = wstr[i];
+
+	if((size + index) > max){ //if the copied string length + index exceeds the max, writes up to the max
+		for(int i = 0; i < (max-index) ; i++){
+			dest[index + i] = wstr[i];
 		}
-		return size - rem;
+		return max-index ;
 	}
-	else{
+	else{ //if copied string length + index won't exceed max, writes whole string to dest
 		for(int i = 0; i < size; i++){
-			istr[index + i] = wstr[i];
+			dest[index + i] = wstr[i];
 		}
 		return size;
 	}
@@ -240,62 +242,47 @@ int snprintf(char *dest, size_t size, const char *fmt, ...){
 	va_list args;				//args list
 	int tempi;					//integer buffer for args
 	double tempf;				//float/double buffer for args
-	int fsize = 0;				
-	char cur = fmt[0];			//current character
-	char *buf = new char[1]();	//for writing letter by letter
+	int asize = size-1;			//number of non-termination characters that can be written
 	const char* converted;		//buffer for numbers converted to strings
-	int count = 0;
-	int to_write;
+	int count = 0;				//tracks number of characters written to dest
 	va_start(args, fmt);		//init list to arg named "fmt"
-	
-	while(cur != '\0'){			//count letters
-		fsize++;
-		cur = fmt[fsize];
-	}
-	if(fsize > size - 1)
-		to_write = size - 1;
-	else
-		to_write = fsize;
+	int i = 0;					//iteration variable
 
-	for(int i = 0; i < to_write; i++)	//iterate through string, find percent signs
+	while(fmt[i] != '\0' && count < asize)
 	{
 		if(fmt[i] == '%')			//if found, interate forward to the next character to figure out data type
 		{
-			i++;			
-
-									//pull next arg of that data type, convert, and print
+			i++;											
 			
+			//pull next arg of that data type, convert, and print
 			if(fmt[i] == 'd')
 			{
 				tempi = va_arg(args, int);
 				converted = itostr(tempi);
-				count += scwrite(converted, dest, count, size - count);
-				//cwrite(converted);
+				count += scwrite(converted, dest, count, asize );
 			}else if(fmt[i] == 'x')
 			{
 				converted = hexconv(va_arg(args, int));
-				count += scwrite(converted, dest, count, size - count);
-				//cwrite(converted);
+				count += scwrite(converted, dest, count, asize);
 			}else if(fmt[i] == 'f')
 			//may need additional i++'s to get all of the formatting flags in
 			//may need encasing "while != any of these...(d, x, f, s, etc)" to collect flags before %f
 			{
 				tempf = va_arg(args, double);
 				converted = dtostr(tempf);
-				count += scwrite(converted, dest, count, size - count);
-				//cwrite(converted);
+				count += scwrite(converted, dest, count, asize);
 			}
 		}
 		else						//if not % sign, write as usual
 		{
-			buf[0] = fmt[i];
-			write(1, buf, 1);
+			dest[count] = fmt[i];	
 			count++;
 		}
+		i++;
 	}
-
+	dest[size-1] = '\0';
 	va_end(args);
 
-	return to_write;
+	return count;
 }
 
