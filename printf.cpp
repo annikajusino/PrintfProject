@@ -33,7 +33,7 @@ char* hexconv(int64_t in){
 
 //writes char array of any length to stdout by counting the size and writing it using typical write() function
 
-void cwrite(const char* wstr) //writes string of variable size
+int cwrite(const char* wstr) //writes string of variable size
 {
 	int size = 0;
 	char cur = wstr[0];
@@ -43,7 +43,7 @@ void cwrite(const char* wstr) //writes string of variable size
 		cur = wstr[size];
 	}
 
-	write(1, wstr, size);
+	return write(1, wstr, size);
 
 }
 
@@ -183,7 +183,8 @@ int printf(const char *fmt, ...){
 	char cur = fmt[0];			//current character
 	char *buf = new char[1]();	//for writing letter by letter
 	const char* converted;		//buffer for numbers converted to strings
-	
+	int count = 0;				//tracks number of characters written to output for returning from printf
+
 	va_start(args, fmt);		//init list to arg named "fmt"
 	
 	while(cur != '\0'){			//count letters
@@ -205,12 +206,12 @@ int printf(const char *fmt, ...){
 //				cwrite(" integer ");
 				tempi = va_arg(args, int);
 				converted = itostr(tempi);
-				cwrite(converted);
+				count += cwrite(converted);
 			}else if(fmt[i] == 'x')
 			{
 //				write(1,"hex",5);
 				converted = hexconv(va_arg(args, int));
-				cwrite(converted);
+				count += cwrite(converted);
 			}else if(fmt[i] == 'f')
 				
 			//may need additional i++'s to get all of the formatting flags in
@@ -223,19 +224,20 @@ int printf(const char *fmt, ...){
 //				cwrite("float");
 				tempf = va_arg(args, double);
 				converted = dtostr(tempf);
-				cwrite(converted);
+				count += cwrite(converted);
 			}
 		}
 		else						//if not % sign, write as usual
 		{
 			buf[0] = fmt[i];
 			write(1, buf, 1);
+			count++;
 		}
 	}
 
 	va_end(args);
 
-	return 0;
+	return count;
 }
 
 int snprintf(char *dest, size_t size, const char *fmt, ...){
